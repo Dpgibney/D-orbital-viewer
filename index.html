@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Field Theory Explorer</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-3.3.1.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .chart-container-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        #orbital-viz { width: 100%; height: 100%; min-height: 400px; }
+
+        .chart-constrained {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            max-height: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s ease;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="max-w-7xl mx-auto mb-8 text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2">Crystal Field Explorer</h1>
+        <p class="text-slate-600 max-w-2xl mx-auto">
+            Featuring: Relative energy level shifts based on coordination geometry, and individual ligand and metal identity. As well as orbital rendering to visualize overlap with ligands.
+        </p>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: CONTROLS -->
+        <section class="lg:col-span-3 space-y-6">
+            
+            <div class="card p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Configuration</h2>
+                
+                <!-- Geometry Selector -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Coordination Geometry</label>
+                    <select id="geometry-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
+                        <!-- Populated JS -->
+                    </select>
+                </div>
+
+                <!-- Metal Selector -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Metal Center</label>
+                    <select id="metal-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
+                        <option value="1.0">Ti³⁺ (3d¹, Low Charge)</option>
+                        <option value="1.4">Fe³⁺ (3d⁵, Medium Charge)</option>
+                        <option value="1.8">Co³⁺ (3d⁶, High Charge)</option>
+                        <option value="2.2">Pt²⁺ (5d⁸, Heavy Metal)</option>
+                    </select>
+                </div>
+
+                <!-- Individual Ligand Strength Selector -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Ligand Field Strengths</label>
+                    <!--<p class="text-xs text-slate-500 mb-2">Controls match 3D colors.</p>-->
+                    <div id="individual-ligand-controls" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <!-- Dynamic controls inserted here -->
+                    </div>
+                </div>
+
+                <!-- Orbital Selector -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Rendered Orbital</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="orbital-btn bg-indigo-100 text-indigo-700 hover:bg-indigo-200 py-2 rounded-md text-xs font-bold transition" data-orb="dxy">dxy</button>
+                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition" data-orb="dyz">dyz</button>
+                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition" data-orb="dxz">dxz</button>
+                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition" data-orb="dx²-y²">dx²-y²</button>
+                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition col-span-2" data-orb="dz²">dz²</button>
+                    </div>
+                </div>
+
+                <!-- Orbital Size Slider -->
+                <div class="relative mb-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Orbital Size</label>
+                        <input id="orbital-size" type="range" min="1" max="99999" value="90000"  class="w-full cursor-pointer">
+                        <span class="text-sm mb-2 text-body absolute start-0 -bottom-5">Smaller</span>
+                        <span class="text-sm mb-2 text-body absolute end-0 -bottom-5">Larger</span>
+                </div>
+
+                <!-- Toggle mesh visibilities -->
+                <div class="mb-0">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Visibility</label>
+                    <div class="flex items-center mb-2">
+                        <input checked id="ligand-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
+                        <label for="ligand-visibility" class="select-none ms-2 text-sm font-medium text-heading">Ligand Visibility</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input checked id="metal-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
+                        <label for="metal-visbility" class="select-none ms-2 text-sm font-medium text-heading">Metal Visibility</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input checked id="axis-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
+                        <label for="axis-visbility" class="select-none ms-2 text-sm font-medium text-heading">Axis Visibility</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input checked id="orbital-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
+                        <label for="orbital-visbility" class="select-none ms-2 text-sm font-medium text-heading">Orbital Visibility</label>
+                    </div>
+                </div>
+
+
+            </div>
+
+        </section>
+
+        <!-- CENTER/RIGHT COLUMN: VISUALIZATION -->
+        <section class="lg:col-span-9 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- 3D Visualization Pane -->
+            <div class="lg:col-span-2 card p-1 flex flex-col">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            3D Rendering
+                        </h2>
+                        <p class="text-xs text-slate-500">
+                            <strong>Transparent:</strong> Orbital Lobes | <strong>Solid:</strong> Metal Center and Ligands
+                            <br>
+                            <strong>Blue: </strong> Positive | <strong>Red: </strong> Negative
+                        </p>
+                    </div>
+                    <div class="text-xs text-right text-slate-400">
+                        Right Click and Drag to Move<br>Left Click and Drag to Rotate
+                    </div>
+                </div>
+                <div class="relative w-full h-96 bg-black rounded-b-lg overflow-hidden">
+                    <div id="orbital-viz"></div>
+                </div>
+            </div>
+
+            <!-- Energy Diagram Pane -->
+            <div class="card p-6 flex flex-col">
+                <h2 class="text-lg font-bold text-slate-800 mb-2">Calculated Splitting Diagram</h2>
+                <p class="text-sm text-slate-500 mb-4">
+                    Energy levels calculated via Angular Overlap Model.
+                </p>
+                <div class="chart-container-wrapper" style="height: 350px;">
+                    <div id="energy-viz" class="w-full h-full"></div>
+                </div>
+            </div>
+
+            <!-- Spectrochemical Series Context -->
+            <div class="card p-6 flex flex-col">
+                <h2 class="text-lg font-bold text-slate-800 mb-2">Ligand Environment</h2>
+                <p class="text-sm text-slate-500 mb-4">
+                    Strength profile of the current coordination sphere.
+                </p>
+                <div class="chart-container-wrapper">
+                    <div class="chart-constrained">
+                        <canvas id="strength-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explanatory Text Area -->
+            <!-- <div class="lg:col-span-2 card p-6 bg-indigo-50 border-indigo-100">
+                <h2 class="text-lg font-bold text-indigo-900 mb-2">Dynamic Analysis</h2>
+                <div id="analysis-text" class="prose prose-sm text-indigo-800 max-w-none"> -->
+                    <!-- Dynamic content populated by JS -->
+            <!--    </div>
+            </div> -->
+
+            <!-- Explanatory Text Area -->
+            <div class="lg:col-span-2 card p-6 bg-indigo-50 border-indigo-100">
+                <h2 class="text-lg font-bold text-indigo-900 mb-2">Mathematical underpinnings</h2>
+                <div id="implimentation-explanation" class="prose prose-sm text-indigo-800 max-w-none">
+                    <p>This viewer is built utilizing the Angular Overlap Method (AOM).</p>
+                    <p>Here we assume that the total orbital energy can be calculated as the sum of the individual interactions
+                        between each ligand and the orbital. Expressible as:
+                    </p>
+                    <p style="text-align: center">
+                        <math>
+                            <mfrac>
+                                <mn>1</mn>
+                                <mn>2</mn>
+                            </mfrac>
+                        </math>
+                    </p>
+                    <p>
+                        Where the orbital interactions (term in above equation here) are the overlap of the
+                        ligand p and metal 3d orbitals. Here we further assume that each ligand is the same distance away from the metal 
+                        center. This simplifies the orbital overlap to be based soley on ligands angular distance from the 3d orbitals. 
+                    </p>
+                    <p>
+                        For the orbital rendering the 3d hydrogenic wavefunctions are sampled in 3d space and 
+                        used to generate an isosurface. (Should verify if there are any important prefactor
+                        differences I'm missing between the orbitals)
+                        <math>
+
+                        </math>
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="text-center text-slate-400 text-sm py-8 mt-8">
+        <p>Crystal Field Theory Explorer | Angular Overlap Simulation | Orbital Rendering</p>
+    </footer>
+
+    <!-- MAIN LOGIC SCRIPT -->
+    <script>
+        const state = {
+            geometry: 'octahedral',
+            metalFactor: 1.0,
+            selectedOrbital: 'dxy',
+            metalName: 'Ti³⁺',
+            ligandFactors: [],
+            size: document.getElementById('orbital-size').defaultValue,
+            plot: null,
+            ligandVisibility: true,
+            metalVisibility: true,
+            axisVisibility: true,
+            orbitalVisibility: true,
+        };
+
+        const ligandData = [
+            { name: 'I⁻ (Weak)', factor: 0.5, color: '#fca5a5' },
+            { name: 'F⁻', factor: 0.8, color: '#fcd34d' },
+            { name: 'H₂O (Med)', factor: 1.2, color: '#93c5fd' },
+            { name: 'NH₃ (Strong)', factor: 1.5, color: '#a78bfa' },
+            { name: 'CN⁻ (V.Strong)', factor: 2.0, color: '#4ade80' }
+        ];
+
+        const geometries = {
+            octahedral: { 
+                coords: [[2,0,0], [-2,0,0], [0,2,0], [0,-2,0], [0,0,2], [0,0,-2]], 
+                names: ['+X', '-X', '+Y', '-Y', '+Z (Axial)', '-Z (Axial)'] 
+            },
+            tetrahedral: { 
+                coords: [[1.5, 1.5, 1.5], [-1.5, -1.5, 1.5], [-1.5, 1.5, -1.5], [1.5, -1.5, -1.5]], 
+                names: ['Corner 1', 'Corner 2', 'Corner 3', 'Corner 4'] 
+            },
+            squareplanar: { 
+                coords: [[2,0,0], [-2,0,0], [0,2,0], [0,-2,0]], 
+                names: ['+X', '-X', '+Y', '-Y'] 
+            },
+            trigonalbipyramidal: { 
+                coords: [[0, 0, 2], [0, 0, -2], [1.732, 0, 0], [-0.866, 1.5, 0], [-0.866, -1.5, 0]], 
+                names: ['+Z (Axial)', '-Z (Axial)', 'Eq 1', 'Eq 2', 'Eq 3'] 
+            },
+            pentagonalbipyramidal: { 
+                coords: [[0, 0, 2], [0, 0, -2], [2, 0, 0], [0.618, 1.9, 0], [-1.618, 1.17, 0], [-1.618, -1.17, 0], [0.618, -1.9, 0]], 
+                names: ['+Z (Axial)', '-Z (Axial)', 'Eq 1', 'Eq 2', 'Eq 3', 'Eq 4', 'Eq 5'] 
+            }
+        };
+
+        const orbitals = ['dz²', 'dx²-y²', 'dxy', 'dxz', 'dyz'];
+        const DEGENERATE_TOLERANCE = 0.05;
+
+        // --- PHYSICS HELPERS ---
+        function getSpherical(x, y, z) {
+            const r = Math.sqrt(x*x + y*y + z*z);
+            const theta = Math.acos(z/r); 
+            const phi = Math.atan2(y, x); 
+            return { r, theta, phi };
+        }
+
+        function calculateOverlap(orbital, theta, phi) {
+            const cosT = Math.cos(theta); const sinT = Math.sin(theta);
+            const cosP = Math.cos(phi); const sinP = Math.sin(phi);
+            const cos2P = Math.cos(2*phi); const sin2P = Math.sin(2*phi);
+
+            switch(orbital) {
+                case 'dz²': return Math.pow(0.5 * (3 * cosT*cosT - 1), 2);
+                case 'dx²-y²': return Math.pow((Math.sqrt(3)/2) * sinT*sinT * cos2P, 2);
+                case 'dxy': return Math.pow((Math.sqrt(3)/2) * sinT*sinT * sin2P, 2);
+                case 'dxz': return Math.pow(Math.sqrt(3) * sinT * cosT * cosP, 2);
+                case 'dyz': return Math.pow(Math.sqrt(3) * sinT * cosT * sinP, 2);
+                default: return 0;
+            }
+        }
+
+        function calculateOrbitalEnergies() {
+            const geom = geometries[state.geometry];
+            const energies = { 'dz²':0, 'dx²-y²':0, 'dxy':0, 'dxz':0, 'dyz':0 };
+            
+            geom.coords.forEach((coord, index) => {
+                const ligandStrength = state.ligandFactors[index];
+                const { theta, phi } = getSpherical(coord[0], coord[1], coord[2]);
+                orbitals.forEach(orb => {
+                    energies[orb] += ligandStrength * calculateOverlap(orb, theta, phi) * 3 * state.metalFactor; 
+                });
+            });
+
+            let totalE = 0;
+            orbitals.forEach(orb => totalE += energies[orb]);
+            const barycenter = totalE / 5;
+            const finalEnergies = {};
+            orbitals.forEach(orb => finalEnergies[orb] = energies[orb] - barycenter);
+            return finalEnergies;
+        }
+
+        // --- 3D RENDERING ---
+        
+        // Helper: Generate Axes Lines and Labels
+        function generateAxes() {
+            const axisColor = '#94a3b8'; // Light slate for visibility on black
+            const range = 2.0;
+            const textOffset = 2.2; // Offset just outside range for labels
+            
+            return [
+                // X Axis
+                { x: [-range, range], y: [0, 0], z: [0, 0], mode: 'lines', line: {color: axisColor, width: 4}, type: 'scatter3d', hoverinfo: 'none', showlegend: false },
+                // Y Axis
+                { x: [0, 0], y: [-range, range], z: [0, 0], mode: 'lines', line: {color: axisColor, width: 4}, type: 'scatter3d', hoverinfo: 'none', showlegend: false },
+                // Z Axis
+                { x: [0, 0], y: [0, 0], z: [-range, range], mode: 'lines', line: {color: axisColor, width: 4}, type: 'scatter3d', hoverinfo: 'none', showlegend: false },
+                
+                // Axis Labels (X, Y, Z)
+                {
+                    x: [textOffset, 0, 0],
+                    y: [0, textOffset, 0],
+                    z: [0, 0, textOffset],
+                    mode: 'text',
+                    text: ['X', 'Y', 'Z'],
+                    textfont: { size: 24, color: '#ffffff', family: 'Inter, sans-serif', weight: 'bold' },
+                    type: 'scatter3d',
+                    hoverinfo: 'none',
+                    showlegend: false
+                }
+            ];
+        }
+
+        // Helper: Used to Generate metal center and Ligand surfaces
+        function generateSphericalSurface(cx, cy, cz, radius, color, name) {
+            const resolution = 30; 
+            const x = [], y = [], z = [], colors = [];
+
+            for (let i = 0; i < resolution; i++) {
+                const theta = (i / (resolution - 1)) * Math.PI;
+                const rowX = [], rowY = [], rowZ = [], rowC = [];
+                for (let j = 0; j < resolution*2; j++) {
+                    const phi = (j / (resolution*2 - 1)) * 2 * Math.PI;
+                    const sinT = Math.sin(theta); const cosT = Math.cos(theta);
+                    const sinP = Math.sin(phi); const cosP = Math.cos(phi);
+
+                    rowX.push(cx + radius * sinT * cosP);
+                    rowY.push(cy + radius * sinT * sinP);
+                    rowZ.push(cz + radius * cosT);
+                    rowC.push(1); 
+                }
+                x.push(rowX); y.push(rowY); z.push(rowZ); colors.push(rowC);
+            }
+
+            return {
+                type: 'surface',
+                x: x, y: y, z: z,
+                surfacecolor: colors,
+                colorscale: [[0, color], [1, color]], 
+                showscale: false,
+                opacity: 1.0, 
+                hoverinfo: 'text',
+                text: Array(resolution).fill(Array(resolution).fill(name)), 
+                contours: { x: {highlight: false}, y: {highlight: false}, z: {highlight: false} },
+                showlegend: false
+            };
+        }
+
+
+
+    function generateOrbitalTraces(type) {
+        const size = 36; // Resolution of the grid
+        const range = 2.8;
+        const step = (range * 2) / (size - 1);
+
+        const x = [], y = [], z = [], v = [];
+
+        // 1. Generate the 3D grid and compute wavefunction values
+        for (let i = 0; i < size; i++) {
+            for (let j = 0; j < size; j++) {
+                for (let k = 0; k < size; k++) {
+                    const px = -range + i * step;
+                    const py = -range + j * step;
+                    const pz = -range + k * step;
+                    
+                    const r2 = px*px + py*py + pz*pz;
+                    const r = Math.sqrt(r2);
+                    
+                    // Angular wavefunctions (Cartesian forms)
+                    let angular = 0;
+                    if (type === 'dz²') angular = (3*pz*pz - r2) / (r2);
+                    else if (type === 'dx²-y²') angular = (px*px - py*py) / (r2);
+                    else if (type === 'dxy') angular = (px * py) / (r2);
+                    else if (type === 'dxz') angular = (px * pz) / (r2);
+                    else if (type === 'dyz') angular = (py * pz) / (r2);
+
+                    // Simple radial decay for visualization
+                        function radial_(r) {
+                            //Set bohr radii to 1
+                            let Z = 8;
+                            let a0 = 0.529
+                            let sigma = 2/3 * Z * r / a0
+                            let coeff = 1 / ( 9 * Math.sqrt(30)) * Math.pow(Z/a0,3/2)
+                            return r * r * Math.pow(coeff * sigma * sigma * Math.exp(-sigma/2),2)                      
+                        }
+                    const radial = radial_(r);
+                    
+                    x.push(px);
+                    y.push(py);
+                    z.push(pz);
+                    v.push(angular * radial);
+                }
+            }
+        }
+
+        // 2. Create the Isosurface Trace
+        // We use a specific value (e.g., 0.1 and -0.1) to define the "shell"
+        // Scaling factor from the UI slider
+        const isoValue = (100000 - state.size) / 100000;
+        
+        return [{
+            type: 'isosurface',
+            x: x, y: y, z: z, value: v,
+            isomin: -isoValue,
+            isomax: isoValue,
+            surface: { fill: 1.0, count: 2 }, // Renders two surfaces: min and max
+            colorscale: [
+                [0, '#ef4444'],   // Negative phase (Red)
+                [0.45, '#ef4444'],
+                [0.5, '#ffffff'], // Midpoint
+                [0.55, '#6366f1'],
+                [1, '#6366f1']    // Positive phase (Indigo)
+            ],
+            showscale: false,
+            caps: { x: {show: false}, y: {show: false}, z: {show: false} },
+            opacity: 0.6,
+            hoverinfo: 'none'
+        }];
+    }
+
+        function render3D() {
+            const layout = {
+                margin: {t:0, b:0, l:0, r:0},
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                scene: {
+                    xaxis: {visible: false, range: [-4, 4]}, // Increased range to see labels
+                    yaxis: {visible: false, range: [-4, 4]},
+                    zaxis: {visible: false, range: [-4, 4]},
+                    aspectmode: 'cube',
+                    camera: { eye: {x: 0.7, y: 0.7, z: 0.7} }
+                },
+                showlegend: false,
+                uirevision: 'constant_camera_state',
+                
+            };
+
+            const geom = geometries[state.geometry];
+            const traces = [];
+
+            // Add Axes and Labels
+            if (state.axisVisibility) {
+                traces.push(...generateAxes());
+            }
+            
+            // Add Orbital
+            let orbTraces = null;
+            if (state.orbitalVisibility) {
+                orbTraces = generateOrbitalTraces(state.selectedOrbital);
+                traces.push(...orbTraces);
+            };
+
+            // Add Ligands
+            geom.coords.forEach((c, i) => {
+                const factor = state.ligandFactors[i];
+                const lData = ligandData.find(l => l.factor === factor) || ligandData[2];
+                const name = `${geom.names[i]}: ${lData.name}`;
+                if (state.ligandVisibility) {
+                    traces.push(generateSphericalSurface(c[0], c[1], c[2], 0.4, lData.color, name));
+                }
+            });
+
+            // Add the metal center
+            if (state.metalVisibility) {
+                traces.push(generateSphericalSurface(0, 0, 0, 0.5, '#64748b', state.metalName));
+            }
+
+            // Create/Update Orbital Figure
+            if (state.plot === null){
+                state.plot = Plotly.newPlot('orbital-viz', traces, layout, {displayModeBar: true, responsive: true});
+            } else {
+                Plotly.react('orbital-viz', traces, document.getElementById('orbital-viz').layout, {displayModeBar: true, responsive: true});
+                //Plotly.restyle('orbital-viz', orbitalUpdate, 4);
+            }
+        }
+
+        // --- CHARTS & UI ---
+        function renderEnergyDiagram() {
+            const energies = calculateOrbitalEnergies();
+            const sortedOrbs = Object.entries(energies).sort((a,b) => a[1] - b[1]);
+
+            const levels = [];
+            let currentLevel = { energy: sortedOrbs[0][1], orbs: [sortedOrbs[0][0]] };
+            for(let i=1; i<sortedOrbs.length; i++) {
+                if(Math.abs(sortedOrbs[i][1] - currentLevel.energy) < DEGENERATE_TOLERANCE) {
+                    currentLevel.orbs.push(sortedOrbs[i][0]);
+                } else {
+                    levels.push(currentLevel);
+                    currentLevel = { energy: sortedOrbs[i][1], orbs: [sortedOrbs[i][0]] };
+                }
+            }
+            levels.push(currentLevel);
+
+            const traces = [];
+            const xCenter = 1, width = 0.6;
+            
+            // DYNAMIC SCALING FOR LABELS
+            const minE = sortedOrbs[0][1];
+            const maxE = sortedOrbs[sortedOrbs.length-1][1];
+            const totalRange = Math.max(maxE - minE, 0.5); 
+            const labelSpacing = totalRange * 0.08; 
+
+            levels.forEach(level => {
+                level.orbs.forEach((orbName, idx) => {
+                    const yPos = level.energy;
+                    traces.push({
+                        x: [xCenter - width/2, xCenter + width/2], y: [yPos, yPos],
+                        mode: 'lines', line: {color: '#4f46e5', width: 4}, hoverinfo: 'none'
+                    });
+                    
+                    const textOffset = (idx - (level.orbs.length-1)/2) * labelSpacing; 
+                    //let labelText = orbName.replace(/dz²/g, 'dz²').replace(/dx²-y²/g, 'dx²-y²');
+                    traces.push({
+                        x: [xCenter + width/2 + 0.1], y: [yPos + textOffset],
+                        mode: 'text', text: [orbName], textposition: 'middle right',
+                        textfont: { family: 'Inter', size: 12, color: '#334155' }, hoverinfo: 'none'
+                    });
+                });
+            });
+
+            traces.push({x: [0, 2], y: [0, 0], mode: 'lines', line: {color: '#94a3b8', width: 1, dash: 'dot'}, hoverinfo: 'none'});
+            
+            const layout = {
+                title: { text: 'Orbital Energy Levels', font: {family: 'Inter', size: 14} },
+                xaxis: { showgrid: false, zeroline: false, showticklabels: false, range: [0.2, 2.5] },
+                yaxis: { title: 'Relative Energy', showgrid: true, zeroline: true, range: [minE - (totalRange*0.2), maxE + (totalRange*0.2)] },
+                margin: { l: 50, r: 20, t: 40, b: 20 }, showlegend: false, hovermode: false
+            };
+            Plotly.newPlot('energy-viz', traces, layout, {displayModeBar: false, responsive: true});
+            updateAnalysisText(sortedOrbs);
+        }
+
+        let strengthChart = null;
+        function renderStrengthChart() {
+            const ctx = document.getElementById('strength-chart').getContext('2d');
+            const dataVals = state.ligandFactors;
+            const labels = geometries[state.geometry].names;
+            const bgColors = dataVals.map(v => (ligandData.find(l => l.factor === v) || ligandData[2]).color);
+            const data = { labels: labels,
+                datasets: [
+                { data: dataVals,
+                  backgroundColor: bgColors,
+                  borderRadius: 4 }
+            ] };
+            const config = { type: 'bar',
+                data: data,
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: {display: false} 
+                    }, scales: { 
+                        y: { beginAtZero: true, max: 2.5 } 
+                    } 
+                } 
+            };
+            if(strengthChart) { strengthChart.data = data; strengthChart.update(); } else { strengthChart = new Chart(ctx, config); }
+        }
+
+        // Used for the Dynamic Analysis Block
+        function updateAnalysisText(sortedOrbs) {
+            return;
+            const container = document.getElementById('analysis-text');
+            const lowest = sortedOrbs[0][0]//.replace('dz²','dz²').replace('dx²-y²','dx²-y²');
+            const highest = sortedOrbs[sortedOrbs.length-1][0]//.replace('dz²','dz²').replace('dx²-y²','dx²-y²');
+            let html = `<p class="mb-2"><strong>Energy Landscape:</strong></p><ul class="list-disc list-inside space-y-1 ml-2 mb-4"><li>Highest Energy: <span class="font-bold text-red-600">${highest}</span></li><li>Lowest Energy: <span class="font-bold text-blue-600">${lowest}</span></li></ul>`;
+            container.innerHTML = html;
+        }
+
+        function populateGeometrySelect() {
+            const sel = document.getElementById('geometry-select');
+            sel.innerHTML = '';
+            Object.keys(geometries).forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k; opt.textContent = k.charAt(0).toUpperCase() + k.slice(1);
+                sel.appendChild(opt);
+            });
+        }
+
+        function renderLigandControls() {
+            const container = document.getElementById('individual-ligand-controls');
+            container.innerHTML = '';
+            const geom = geometries[state.geometry];
+            geom.names.forEach((name, i) => {
+                const currentVal = state.ligandFactors[i];
+                const currentColorData = ligandData.find(l => l.factor === currentVal) || ligandData[2];
+                const color = currentColorData.color;
+
+                const div = document.createElement('div');
+                div.className = "flex items-center space-x-2 bg-slate-50 p-1 rounded";
+                
+                // Color Swatch
+                const swatch = `<div class="w-4 h-4 rounded-full flex-shrink-0 border border-slate-300" style="background-color: ${color};"></div>`;
+                
+                // Color-matched select
+                let selectHTML = `<select data-idx="${i}" class="lig-select flex-1 text-xs border-slate-300 rounded ml-2" style="background-color: ${color};">`; 
+                ligandData.forEach(l => {
+                    selectHTML += `<option value="${l.factor}" style="background-color: ${l.color};" ${Math.abs(l.factor - currentVal) < 0.01 ? 'selected' : ''}>${l.name}</option>`;
+                });
+                selectHTML += `</select>`;
+
+                div.innerHTML = `${swatch}<span class="text-xs font-mono w-16 text-slate-500 truncate" title="${name}">${name}</span>${selectHTML}`;
+                container.appendChild(div);
+            });
+            document.querySelectorAll('.lig-select').forEach(s => s.addEventListener('change', (e) => {
+                state.ligandFactors[parseInt(e.target.dataset.idx)] = parseFloat(e.target.value);
+                // Also update the background of the select immediately
+                const newFactor = parseFloat(e.target.value);
+                const newColor = (ligandData.find(l => l.factor === newFactor) || ligandData[2]).color;
+                e.target.style.backgroundColor = newColor;
+                
+                updateAll();
+            }));
+        }
+
+        function updateAll() { render3D(); renderEnergyDiagram(); renderStrengthChart(); renderLigandControls();}
+
+        populateGeometrySelect();
+        state.ligandFactors = new Array(6).fill(1.2); 
+        renderLigandControls();
+        updateAll();
+
+        document.getElementById('geometry-select').addEventListener('change', (e) => {
+            state.geometry = e.target.value;
+            state.ligandFactors = new Array(geometries[state.geometry].names.length).fill(1.2);
+            renderLigandControls(); updateAll();
+        });
+        document.getElementById('metal-select').addEventListener('change', (e) => { state.metalFactor = parseFloat(e.target.value); updateAll(); });
+        document.querySelectorAll('.orbital-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.orbital-btn').forEach(b => { 
+                b.classList.remove('bg-indigo-100', 'text-indigo-700');
+                b.classList.add('bg-slate-100', 'text-slate-600'); 
+            });
+            e.target.classList.remove('bg-slate-100', 'text-slate-600');
+            e.target.classList.add('bg-indigo-100', 'text-indigo-700');
+            state.selectedOrbital = e.target.getAttribute('data-orb');
+            render3D();
+        }));
+        document.getElementById('orbital-size').addEventListener('input', (e) => {
+            state.size = e.srcElement.value;
+            render3D();
+        });
+        document.getElementById('ligand-visibility').addEventListener('change', function() {
+            state.ligandVisibility = this.checked;
+            render3D();
+        });
+        document.getElementById('metal-visibility').addEventListener('change', function() {
+            state.metalVisibility = this.checked;
+            render3D();
+        });
+        document.getElementById('axis-visibility').addEventListener('change', function() {
+            state.axisVisibility = this.checked;
+            render3D();
+        });
+        document.getElementById('orbital-visibility').addEventListener('change', function() {
+            state.orbitalVisibility = this.checked;
+            render3D();
+        });
+        window.addEventListener('resize', () => { 
+            Plotly.relayout('orbital-viz', {autosize: true}); 
+            Plotly.relayout('energy-viz', {autosize: true}); 
+        });
+    </script>
+</body>
+</html>
