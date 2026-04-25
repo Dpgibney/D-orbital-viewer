@@ -6,13 +6,13 @@
     <title>Crystal Field Theory Explorer</title>
     
     <!-- Tailwind CSS -->
-    <script src="tailwind.js"></script>
+    <link rel="stylesheet" href="tailwindcss.css">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-3.3.1.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-gl3d-3.3.1.min.js"></script>
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -20,75 +20,37 @@
     <!-- MathJax -->
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        .chart-container-wrapper {
-            position: relative;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        }
-
-        #orbital-viz { width: 100%; height: 100%; min-height: 400px; }
-
-        .chart-constrained {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            height: 300px;
-            max-height: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .card {
-            background-color: #ffffff;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            border: 1px solid #e2e8f0;
-            transition: transform 0.2s ease;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="p-4 md:p-8">
+<body>
 
-    <header class="max-w-7xl mx-auto mb-8 text-center">
-        <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2">Crystal Field Explorer</h1>
-        <p class="text-slate-600 max-w-2xl mx-auto">
+    <header class="app-header container">
+        <h1>Crystal Field Explorer</h1>
+        <p>
             Featuring: Relative energy level shifts based on coordination geometry, and individual ligand and metal identity. As well as orbital rendering to visualize overlap with ligands.
         </p>
     </header>
 
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <main class="app-grid container">
 
         <!-- LEFT COLUMN: CONTROLS -->
-        <section class="lg:col-span-3 space-y-6">
-            
-            <div class="card p-6">
-                <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Configuration</h2>
-                
+        <section class="controls-col">
+
+            <div class="card pad-lg">
+                <h2 class="panel-title">Configuration</h2>
+
                 <!-- Geometry Selector -->
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Coordination Geometry</label>
-                    <select id="geometry-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
+                <div class="field">
+                    <label class="field-label">Coordination Geometry</label>
+                    <select id="geometry-select" class="field-select">
                         <!-- Populated JS -->
                     </select>
                 </div>
 
                 <!-- Metal Selector -->
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Metal Center</label>
-                    <select id="metal-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
+                <div class="field">
+                    <label class="field-label">Metal Center</label>
+                    <select id="metal-select" class="field-select">
                         <option value="1.0">Ti³⁺ (3d¹, Low Charge)</option>
                         <option value="1.4">Fe³⁺ (3d⁵, Medium Charge)</option>
                         <option value="1.8">Co³⁺ (3d⁶, High Charge)</option>
@@ -97,102 +59,94 @@
                 </div>
 
                 <!-- Individual Ligand Strength Selector -->
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Ligand Field Strengths</label>
-                    <!--<p class="text-xs text-slate-500 mb-2">Controls match 3D colors.</p>-->
-                    <div id="individual-ligand-controls" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <div class="field">
+                    <label class="field-label">Ligand Field Strengths</label>
+                    <div id="individual-ligand-controls" class="ligand-list">
                         <!-- Dynamic controls inserted here -->
                     </div>
                 </div>
 
                 <!-- Orbital Selector -->
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Rendered Orbital</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button class="orbital-btn bg-indigo-100 text-indigo-700 hover:bg-indigo-200 py-2 rounded-md text-xs font-bold transition" data-orb="dxy">dxy</button>
-                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition" data-orb="dyz">dyz</button>
-                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition" data-orb="dxz">dxz</button>
-                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition" data-orb="dx²-y²">dx²-y²</button>
-                        <button class="orbital-btn bg-slate-100 text-slate-600 hover:bg-slate-200 py-2 rounded-md text-xs font-bold transition col-span-2" data-orb="dz²">dz²</button>
+                <div class="field">
+                    <label class="field-label">Rendered Orbital</label>
+                    <div class="orbital-grid">
+                        <button class="orbital-btn active" data-orb="dxy">dxy</button>
+                        <button class="orbital-btn" data-orb="dyz">dyz</button>
+                        <button class="orbital-btn" data-orb="dxz">dxz</button>
+                        <button class="orbital-btn" data-orb="dx²-y²">dx²-y²</button>
+                        <button class="orbital-btn wide" data-orb="dz²">dz²</button>
                     </div>
                 </div>
 
                 <!-- Orbital Size Slider -->
-                <div class="relative mb-6">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Orbital Size</label>
-                        <input id="orbital-size" type="range" min="1" max="99999" value="90000"  class="w-full cursor-pointer">
-                        <span class="text-sm mb-2 text-body absolute start-0 -bottom-5">Smaller</span>
-                        <span class="text-sm mb-2 text-body absolute end-0 -bottom-5">Larger</span>
+                <div class="slider-wrap">
+                    <label class="field-label">Orbital Size</label>
+                    <input id="orbital-size" type="range" min="1" max="99999" value="90000" class="slider">
+                    <span class="slider-label start">Smaller</span>
+                    <span class="slider-label end">Larger</span>
                 </div>
 
                 <!-- Toggle mesh visibilities -->
-                <div class="mb-0">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Visibility</label>
-                    <div class="flex items-center mb-2">
-                        <input checked id="ligand-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
-                        <label for="ligand-visibility" class="select-none ms-2 text-sm font-medium text-heading">Ligand Visibility</label>
+                <div class="field">
+                    <label class="field-label">Visibility</label>
+                    <div class="check-row">
+                        <input checked id="ligand-visibility" type="checkbox" class="check-box">
+                        <label for="ligand-visibility" class="check-label">Ligand Visibility</label>
                     </div>
-                    <div class="flex items-center mb-2">
-                        <input checked id="metal-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
-                        <label for="metal-visbility" class="select-none ms-2 text-sm font-medium text-heading">Metal Visibility</label>
+                    <div class="check-row">
+                        <input checked id="metal-visibility" type="checkbox" class="check-box">
+                        <label for="metal-visbility" class="check-label">Metal Visibility</label>
                     </div>
-                    <div class="flex items-center mb-2">
-                        <input checked id="axis-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
-                        <label for="axis-visbility" class="select-none ms-2 text-sm font-medium text-heading">Axis Visibility</label>
+                    <div class="check-row">
+                        <input checked id="axis-visibility" type="checkbox" class="check-box">
+                        <label for="axis-visbility" class="check-label">Axis Visibility</label>
                     </div>
-                    <div class="flex items-center">
-                        <input checked id="orbital-visibility" type="checkbox" value="" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft">
-                        <label for="orbital-visbility" class="select-none ms-2 text-sm font-medium text-heading">Orbital Visibility</label>
+                    <div class="check-row">
+                        <input checked id="orbital-visibility" type="checkbox" class="check-box">
+                        <label for="orbital-visbility" class="check-label">Orbital Visibility</label>
                     </div>
                 </div>
-
 
             </div>
 
         </section>
 
         <!-- CENTER/RIGHT COLUMN: VISUALIZATION -->
-        <section class="lg:col-span-9 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="viz-col">
 
             <!-- 3D Visualization Pane -->
-            <div class="lg:col-span-2 card p-1 flex flex-col">
-                <div class="p-4 border-b flex justify-between items-center">
+            <div class="card viz-pane">
+                <div class="viz-pane__header">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            3D Rendering
-                        </h2>
-                        <p class="text-xs text-slate-500">
+                        <h2 class="viz-pane__heading">3D Rendering</h2>
+                        <p class="viz-pane__desc">
                             <strong>Transparent:</strong> Orbital Lobes | <strong>Solid:</strong> Metal Center and Ligands
                             <br>
                             <strong>Blue: </strong> Positive | <strong>Red: </strong> Negative
                         </p>
                     </div>
-                    <div class="text-xs text-right text-slate-400">
+                    <div class="viz-pane__hint">
                         Right Click and Drag to Move<br>Left Click and Drag to Rotate
                     </div>
                 </div>
-                <div class="relative w-full h-96 bg-black rounded-b-lg overflow-hidden">
+                <div class="viz-canvas">
                     <div id="orbital-viz"></div>
                 </div>
             </div>
 
             <!-- Energy Diagram Pane -->
-            <div class="card p-6 flex flex-col">
-                <h2 class="text-lg font-bold text-slate-800 mb-2">Calculated Splitting Diagram</h2>
-                <p class="text-sm text-slate-500 mb-4">
-                    Energy levels calculated via Angular Overlap Model.
-                </p>
+            <div class="card chart-pane">
+                <h2 class="section-title">Calculated Splitting Diagram</h2>
+                <p class="section-desc">Energy levels calculated via Angular Overlap Model.</p>
                 <div class="chart-container-wrapper" style="height: 350px;">
-                    <div id="energy-viz" class="w-full h-full"></div>
+                    <div id="energy-viz"></div>
                 </div>
             </div>
 
             <!-- Spectrochemical Series Context -->
-            <div class="card p-6 flex flex-col">
-                <h2 class="text-lg font-bold text-slate-800 mb-2">Ligand Environment</h2>
-                <p class="text-sm text-slate-500 mb-4">
-                    Strength profile of the current coordination sphere.
-                </p>
+            <div class="card chart-pane">
+                <h2 class="section-title">Ligand Environment</h2>
+                <p class="section-desc">Strength profile of the current coordination sphere.</p>
                 <div class="chart-container-wrapper">
                     <div class="chart-constrained">
                         <canvas id="strength-chart"></canvas>
@@ -204,7 +158,7 @@
 
     </main>
 
-    <footer class="text-center text-slate-400 text-sm py-8 mt-8">
+    <footer class="app-footer">
         <p>Crystal Field Theory Explorer | Angular Overlap Simulation | Orbital Rendering</p>
     </footer>
 
@@ -608,19 +562,19 @@
                 const color = currentColorData.color;
 
                 const div = document.createElement('div');
-                div.className = "flex items-center space-x-2 bg-slate-50 p-1 rounded";
-                
+                div.className = "ligand-row";
+
                 // Color Swatch
-                const swatch = `<div class="w-4 h-4 rounded-full flex-shrink-0 border border-slate-300" style="background-color: ${color};"></div>`;
-                
+                const swatch = `<div class="ligand-swatch" style="background-color: ${color};"></div>`;
+
                 // Color-matched select
-                let selectHTML = `<select data-idx="${i}" class="lig-select flex-1 text-xs border-slate-300 rounded ml-2" style="background-color: ${color};">`; 
+                let selectHTML = `<select data-idx="${i}" class="lig-select ligand-select" style="background-color: ${color};">`;
                 ligandData.forEach(l => {
                     selectHTML += `<option value="${l.factor}" style="background-color: ${l.color};" ${Math.abs(l.factor - currentVal) < 0.01 ? 'selected' : ''}>${l.name}</option>`;
                 });
                 selectHTML += `</select>`;
 
-                div.innerHTML = `${swatch}<span class="text-xs font-mono w-16 text-slate-500 truncate" title="${name}">${name}</span>${selectHTML}`;
+                div.innerHTML = `${swatch}<span class="ligand-name" title="${name}">${name}</span>${selectHTML}`;
                 container.appendChild(div);
             });
             document.querySelectorAll('.lig-select').forEach(s => s.addEventListener('change', (e) => {
@@ -648,12 +602,8 @@
         });
         document.getElementById('metal-select').addEventListener('change', (e) => { state.metalFactor = parseFloat(e.target.value); updateAll(); });
         document.querySelectorAll('.orbital-btn').forEach(btn => btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.orbital-btn').forEach(b => { 
-                b.classList.remove('bg-indigo-100', 'text-indigo-700');
-                b.classList.add('bg-slate-100', 'text-slate-600'); 
-            });
-            e.target.classList.remove('bg-slate-100', 'text-slate-600');
-            e.target.classList.add('bg-indigo-100', 'text-indigo-700');
+            document.querySelectorAll('.orbital-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
             state.selectedOrbital = e.target.getAttribute('data-orb');
             render3D();
         }));
