@@ -627,10 +627,14 @@
             state.orbitalVisibility = this.checked;
             render3D();
         });
-        window.addEventListener('resize', () => { 
-            Plotly.relayout('orbital-viz', {autosize: true}); 
-            Plotly.relayout('energy-viz', {autosize: true}); 
-        });
+        function resizePlots() {
+            const orbital = document.getElementById('orbital-viz');
+            const energy = document.getElementById('energy-viz');
+            if (orbital && orbital.data) Plotly.Plots.resize(orbital);
+            if (energy && energy.data) Plotly.Plots.resize(energy);
+        }
+        window.addEventListener('resize', resizePlots);
+        window.addEventListener('orientationchange', () => setTimeout(resizePlots, 150));
     </script>
 </body>
 </html>

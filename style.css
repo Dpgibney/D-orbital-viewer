@@ -1,4 +1,5 @@
 /* Base */
+html, body { overflow-x: hidden; }
 body {
     font-family: 'Inter', sans-serif;
     background-color: #f8fafc;
@@ -42,26 +43,29 @@ body {
 
 .app-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
 }
 @media (min-width: 1024px) {
     .app-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-    .controls-col { grid-column: span 3 / span 3; }
-    .viz-col { grid-column: span 9 / span 9; }
+    .controls-col { grid-column: span 3 / span 3; min-width: 0; }
+    .viz-col { grid-column: span 9 / span 9; min-width: 0; }
 }
 
+.controls-col { min-width: 0; }
 .controls-col > * + * { margin-top: 1.5rem; }
 
 .viz-col {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
+    min-width: 0;
 }
 @media (min-width: 1024px) {
     .viz-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .viz-pane { grid-column: span 2 / span 2; }
 }
+.viz-col > * { min-width: 0; }
 
 /* Cards */
 .card {
@@ -235,6 +239,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 .viz-pane__heading {
     font-size: 1.125rem;
